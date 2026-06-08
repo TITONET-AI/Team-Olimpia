@@ -388,27 +388,100 @@ function App() {
         style:{width:"100%",padding:"14px",fontSize:15,fontWeight:600,cursor:saving?"wait":"pointer",background:saved?BRAND.green:BRAND.blue,border:"none",borderRadius:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.2s",opacity:j1===j2?0.5:1}
       }, saving?"Guardando...":saved?"✓ Partido guardado":"Guardar partido"),
 
-      React.createElement(Card, {style:{padding:"12px 16px"}},
-        React.createElement(SectionLabel, {text:"Sistema de puntos ELO"}),
-        React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,display:"grid",gridTemplateColumns:"1fr auto auto",gap:"4px 16px",alignItems:"center"}},
-          React.createElement("span", null, "Ganas a rival +26 pts por encima"),
-          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+5"),
-          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
-          React.createElement("span", null, "Ganas a rival +11–25 pts por encima"),
-          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+4"),
-          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
-          React.createElement("span", null, "Ganas a rival similar (0–10 pts)"),
-          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+3"),
-          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
-          React.createElement("span", null, "Ganas a rival 1–10 pts por debajo"),
-          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+2"),
-          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-2"),
-          React.createElement("span", null, "Ganas a rival 11+ pts por debajo"),
-          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+2"),
-          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-3"),
-          React.createElement("span", {style:{gridColumn:"1/-1",borderTop:`1px solid ${BRAND.border}`,paddingTop:8,marginTop:4,color:BRAND.textMuted}},
-            "🔥 Racha: +1 extra desde la 3ª victoria consecutiva · Julio–Agosto no cuentan"
+      React.createElement(Card, {style:{padding:"1.25rem"}},
+        React.createElement(SectionLabel, {text:"Cómo funcionan los puntos"}),
+
+        // ELO
+        React.createElement("div", {style:{marginBottom:16}},
+          React.createElement("div", {style:{fontSize:13,fontWeight:600,color:BRAND.text,marginBottom:8,display:"flex",alignItems:"center",gap:6}},
+            React.createElement("span", {style:{background:BRAND.blueLight,color:BRAND.blue,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:700}}, "ELO"),
+            "Puntos según el nivel del rival"
+          ),
+          React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,lineHeight:1.6,marginBottom:10}},
+            "Los puntos no son fijos. Cuanto más fuerte es tu rival, más ganas si le vences y menos pierdes si caes. Así el ranking refleja el mérito real de cada victoria."
+          ),
+          React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${BRAND.border}`}},
+            React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr auto auto",fontSize:11,fontWeight:600,color:BRAND.textMuted,padding:"6px 12px",borderBottom:`1px solid ${BRAND.border}`,background:"#eef1f6"}},
+              React.createElement("span", null, "Situación"),
+              React.createElement("span", {style:{textAlign:"center",minWidth:40}}, "Ganador"),
+              React.createElement("span", {style:{textAlign:"center",minWidth:40}}, "Perdedor")
+            ),
+            [
+              ["Rival tiene +26 pts más que tú", "+5", "-1"],
+              ["Rival tiene +11 a +25 pts más", "+4", "-1"],
+              ["Rival similar (diferencia 0–10 pts)", "+3", "-1"],
+              ["Rival tiene 1–10 pts menos", "+2", "-2"],
+              ["Rival tiene 11+ pts menos", "+2", "-3"],
+            ].map(([label, win, lose], i) =>
+              React.createElement("div", {key:i, style:{display:"grid",gridTemplateColumns:"1fr auto auto",fontSize:12,padding:"7px 12px",borderBottom:i<4?`1px solid ${BRAND.border}`:"none",background:i%2===0?"#fff":BRAND.bg}},
+                React.createElement("span", {style:{color:BRAND.textMuted}}, label),
+                React.createElement("span", {style:{textAlign:"center",fontWeight:700,color:BRAND.green,minWidth:40}}, win),
+                React.createElement("span", {style:{textAlign:"center",fontWeight:700,color:BRAND.red,minWidth:40}}, lose)
+              )
+            )
           )
+        ),
+
+        // EMPATE
+        React.createElement("div", {style:{marginBottom:16}},
+          React.createElement("div", {style:{fontSize:13,fontWeight:600,color:BRAND.text,marginBottom:8,display:"flex",alignItems:"center",gap:6}},
+            React.createElement("span", {style:{background:BRAND.amberLight,color:BRAND.amber,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:700}}, "EMPATE"),
+            "Ventaja para el que sube"
+          ),
+          React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,lineHeight:1.6}}),
+          React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,border:`1px solid ${BRAND.border}`,padding:"10px 12px",fontSize:12,color:BRAND.textMuted,lineHeight:1.7}},
+            "En un empate o partido no completado, el jugador mejor clasificado pierde ",
+            React.createElement("span", {style:{fontWeight:700,color:BRAND.red}}, "−1 pt"),
+            " y el peor clasificado gana ",
+            React.createElement("span", {style:{fontWeight:700,color:BRAND.green}}, "+1 pt"),
+            ". Competir hacia arriba siempre compensa."
+          )
+        ),
+
+        // RACHA
+        React.createElement("div", {style:{marginBottom:16}},
+          React.createElement("div", {style:{fontSize:13,fontWeight:600,color:BRAND.text,marginBottom:8,display:"flex",alignItems:"center",gap:6}},
+            React.createElement("span", {style:{background:BRAND.amberLight,color:BRAND.amber,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:700}}, "🔥 RACHA"),
+            "Bonus por victorias consecutivas"
+          ),
+          React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,border:`1px solid ${BRAND.border}`,padding:"10px 12px",fontSize:12,color:BRAND.textMuted,lineHeight:1.7}}),
+          React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,border:`1px solid ${BRAND.border}`,padding:"10px 12px",fontSize:12,color:BRAND.textMuted,lineHeight:1.7}},
+            "A partir de la ",
+            React.createElement("span", {style:{fontWeight:700,color:BRAND.text}}, "3ª victoria consecutiva"),
+            " sumas ",
+            React.createElement("span", {style:{fontWeight:700,color:BRAND.green}}, "+1 pt extra"),
+            " por cada nueva victoria mientras no pierdas. Un empate no rompe la racha, una derrota sí."
+          )
+        ),
+
+        // INACTIVIDAD
+        React.createElement("div", {style:{marginBottom:16}},
+          React.createElement("div", {style:{fontSize:13,fontWeight:600,color:BRAND.text,marginBottom:8,display:"flex",alignItems:"center",gap:6}},
+            React.createElement("span", {style:{background:BRAND.redLight,color:BRAND.red,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:700}}, "INACTIVIDAD"),
+            "Penalización por no jugar"
+          ),
+          React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${BRAND.border}`}},
+            [
+              ["1 mes sin jugar", "−1 pt"],
+              ["2 meses consecutivos sin jugar", "−3 pts"],
+              ["3 o más meses consecutivos sin jugar", "−5 pts"],
+            ].map(([label, pen], i) =>
+              React.createElement("div", {key:i, style:{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"7px 12px",borderBottom:i<2?`1px solid ${BRAND.border}`:"none",background:i%2===0?"#fff":BRAND.bg}},
+                React.createElement("span", {style:{color:BRAND.textMuted}}, label),
+                React.createElement("span", {style:{fontWeight:700,color:BRAND.red}}, pen)
+              )
+            )
+          )
+        ),
+
+        // CALENDARIO
+        React.createElement("div", {style:{background:BRAND.blueLight,borderRadius:8,padding:"10px 12px",border:`1px solid ${BRAND.blueMid}`,fontSize:12,color:BRAND.blue,lineHeight:1.7}},
+          React.createElement("span", {style:{fontWeight:700}}, "📅 Calendario: "),
+          "El ranking está activo de ",
+          React.createElement("span", {style:{fontWeight:700}}, "septiembre a junio"),
+          ". Los partidos jugados en julio y agosto se registran pero ",
+          React.createElement("span", {style:{fontWeight:700}}, "no suman ni restan puntos"),
+          ". El contador de inactividad tampoco corre en verano."
         )
       )
     ),
