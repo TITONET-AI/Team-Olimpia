@@ -36,14 +36,14 @@ const INITIAL_PLAYERS = [
 const SP_PLAYERS = ["Sergio","Jordi"];
 
 // ── ALGORITMO ──────────────────────────────────────────────────────────────
-function calcEloPoints(ptsGanador, ptsPerdedor) {
-  const diff = ptsPerdedor - ptsGanador; // positivo = rival más fuerte
+function calcEloPoints(rankGanador, rankPerdedor) {
+  const diff = rankGanador - rankPerdedor; // positivo = rival mejor clasificado
   let ptsWin, ptsLose;
-  if (diff >= 26)       { ptsWin = 5; ptsLose = -1; }
-  else if (diff >= 11)  { ptsWin = 4; ptsLose = -1; }
-  else if (diff >= 0)   { ptsWin = 3; ptsLose = -1; }
-  else if (diff >= -10) { ptsWin = 2; ptsLose = -2; }
-  else                  { ptsWin = 2; ptsLose = -3; }
+  if (diff >= 10)      { ptsWin = 5; ptsLose = -1; }
+  else if (diff >= 5)  { ptsWin = 4; ptsLose = -1; }
+  else if (diff >= 1)  { ptsWin = 3; ptsLose = -1; }
+  else if (diff >= -4) { ptsWin = 2; ptsLose = -2; }
+  else                 { ptsWin = 2; ptsLose = -3; }
   return { ptsWin, ptsLose };
 }
 
@@ -74,7 +74,7 @@ function calcPoints(j1name, j2name, result, players) {
   let p1=0, p2=0, b1="", b2="";
 
   if (result === "j1") {
-    const {ptsWin, ptsLose} = calcEloPoints(pl1.pts, pl2.pts);
+    const {ptsWin, ptsLose} = calcEloPoints(r1, r2);
     const streak = calcStreakBonus((pl1.racha_victorias || 0) + 1);
     p1 = ptsWin + streak;
     p2 = ptsLose;
@@ -82,7 +82,7 @@ function calcPoints(j1name, j2name, result, players) {
     if (streak > 0) b1 += (b1?" · ":"") + "+1 racha";
     if (ptsLose < -1) b2 = `${ptsLose} ELO`;
   } else if (result === "j2") {
-    const {ptsWin, ptsLose} = calcEloPoints(pl2.pts, pl1.pts);
+    const {ptsWin, ptsLose} = calcEloPoints(r2, r1);
     const streak = calcStreakBonus((pl2.racha_victorias || 0) + 1);
     p2 = ptsWin + streak;
     p1 = ptsLose;
@@ -395,7 +395,7 @@ function App() {
             "Puntos según el nivel del rival"
           ),
           React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,lineHeight:1.6,marginBottom:10}},
-            "Los puntos no son fijos. Cuanto más fuerte es tu rival, más ganas si le vences y menos pierdes si caes. Así el ranking refleja el mérito real de cada victoria."
+            "Los puntos no son fijos. Cuanto más arriba en el ranking está tu rival, más ganas si le vences. La distancia se mide en posiciones del ranking, en tramos de 5."
           ),
           React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${BRAND.border}`}},
             React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr auto auto",fontSize:11,fontWeight:600,color:BRAND.textMuted,padding:"6px 12px",borderBottom:`1px solid ${BRAND.border}`,background:"#eef1f6"}},
@@ -404,11 +404,11 @@ function App() {
               React.createElement("span", {style:{textAlign:"center",minWidth:40}}, "Perdedor")
             ),
             [
-              ["Rival tiene +26 pts más que tú", "+5", "-1"],
-              ["Rival tiene +11 a +25 pts más", "+4", "-1"],
-              ["Rival similar (diferencia 0–10 pts)", "+3", "-1"],
-              ["Rival tiene 1–10 pts menos", "+2", "-2"],
-              ["Rival tiene 11+ pts menos", "+2", "-3"],
+              ["Rival está 10+ posiciones por encima", "+5", "-1"],
+              ["Rival está 5–9 posiciones por encima", "+4", "-1"],
+              ["Rival está 1–4 posiciones por encima o igual", "+3", "-1"],
+              ["Rival está 1–4 posiciones por debajo", "+2", "-2"],
+              ["Rival está 5+ posiciones por debajo", "+2", "-3"],
             ].map(([label, win, lose], i) =>
               React.createElement("div", {key:i, style:{display:"grid",gridTemplateColumns:"1fr auto auto",fontSize:12,padding:"7px 12px",borderBottom:i<4?`1px solid ${BRAND.border}`:"none",background:i%2===0?"#fff":BRAND.bg}},
                 React.createElement("span", {style:{color:BRAND.textMuted}}, label),
@@ -477,8 +477,8 @@ function App() {
           "Puedes registrar partidos desde ya. Los puntos y el ranking ",
           React.createElement("span", {style:{fontWeight:700}}, "ya se actualizan"),
           ". La actividad de julio y agosto ",
-          React.createElement("span", {style:{fontWeight:700}}, "no se tendrá en cuenta"),
-          " para el índice de inactividad, que empezará a partir de ",
+          React.createElement("span", {style:{fontWeight:700}}, "sí suma y resta puntos"),
+          ", pero el índice de inactividad no empezará a correr hasta ",
           React.createElement("span", {style:{fontWeight:700}}, "septiembre"),
           "."
         )
