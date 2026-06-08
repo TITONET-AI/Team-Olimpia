@@ -38,15 +38,26 @@ const SP_PLAYERS = ["Sergio","Jordi"];
 // ── ALGORITMO ──────────────────────────────────────────────────────────────
 function calcEloPoints(rankGanador, rankPerdedor) {
   // rank 0 = líder. Número mayor = peor posición.
-  // diff positivo = ganador está MÁS ABAJO que el perdedor = upset
-  // diff negativo = ganador está MÁS ARRIBA que el perdedor = esperado
-  const diff = rankGanador - rankPerdedor;
+  // upset positivo = ganador estaba más abajo (sorpresa)
+  // upset negativo = ganador estaba más arriba (favorito)
+  const upset = rankGanador - rankPerdedor;
+
   let ptsWin, ptsLose;
-  if (diff >= 10)      { ptsWin = 5; ptsLose = -1; } // upset enorme
-  else if (diff >= 5)  { ptsWin = 4; ptsLose = -1; } // upset notable
-  else if (diff >= 0)  { ptsWin = 3; ptsLose = -1; } // similar o ligeramente por debajo
-  else if (diff >= -4) { ptsWin = 2; ptsLose = -2; } // ganas a alguien 1-4 pos. por debajo
-  else                 { ptsWin = 2; ptsLose = -3; } // ganas a alguien 5+ pos. por debajo
+
+  if (upset >= 10) {
+    ptsWin = 5; ptsLose = -3; // upset enorme: el colista gana al líder
+  } else if (upset >= 5) {
+    ptsWin = 4; ptsLose = -2; // upset notable: 5-9 posiciones por encima
+  } else if (upset >= 1) {
+    ptsWin = 3; ptsLose = -1; // ganas a alguien 1-4 posiciones por encima: mérito normal
+  } else if (upset === 0) {
+    ptsWin = 3; ptsLose = -1; // mismo nivel
+  } else if (upset >= -4) {
+    ptsWin = 2; ptsLose = -1; // favorito gana a alguien 1-4 pos. por debajo: poco mérito
+  } else {
+    ptsWin = 2; ptsLose = -1; // favorito gana a alguien 5+ pos. por debajo: esperado
+  }
+
   return { ptsWin, ptsLose };
 }
 
@@ -88,7 +99,7 @@ function calcPoints(j1name, j2name, result, players) {
     if (streak > 0) b1 += (b1?" · ":"") + "+1 racha";
     if (ptsLose < -1) b2 = `${ptsLose} ELO`;
   } else if (result === "j2") {
-    // j2 gana. ¿Cuántas posiciones está j2 por DEBAJO de j1?
+    // j2 gana. Pasamos rank del ganador (r2) y rank del perdedor (r1)
     const {ptsWin, ptsLose} = calcEloPoints(r2, r1);
     const streak = calcStreakBonus((pl2.racha_victorias || 0) + 1);
     p2 = ptsWin + streak;
@@ -204,32 +215,29 @@ function App() {
     try {
       await sbPost("partidos",{
         id:Date.now(), fecha, j1, j2, resultado:resultLabel,
-        sets:sets||"-", pts_j1:active?p1:0, pts_j2:active?p2:0
+        sets:sets||"-", pts_j1:p1, pts_j2:p2
       });
 
-      if (active) {
-        const pl1=players.find(p=>p.nombre===j1);
-        const pl2=players.find(p=>p.nombre===j2);
+      const pl1=players.find(p=>p.nombre===j1);
+      const pl2=players.find(p=>p.nombre===j2);
 
-        // Calcular nueva racha
-        const racha1 = result==="j1" ? (pl1.racha_victorias||0)+1 : (result==="draw" ? (pl1.racha_victorias||0) : 0);
-        const racha2 = result==="j2" ? (pl2.racha_victorias||0)+1 : (result==="draw" ? (pl2.racha_victorias||0) : 0);
+      const racha1 = result==="j1" ? (pl1.racha_victorias||0)+1 : (result==="draw" ? (pl1.racha_victorias||0) : 0);
+      const racha2 = result==="j2" ? (pl2.racha_victorias||0)+1 : (result==="draw" ? (pl2.racha_victorias||0) : 0);
 
-        await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j1)}`,{
-          pts: pl1.pts+p1, jugados: pl1.jugados+1,
-          victorias: pl1.victorias+(result==="j1"?1:0),
-          derrotas: pl1.derrotas+(result==="j2"?1:0),
-          empates: pl1.empates+(result==="draw"?1:0),
-          racha_victorias: racha1, meses_sin_jugar: 0
-        });
-        await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j2)}`,{
-          pts: pl2.pts+p2, jugados: pl2.jugados+1,
-          victorias: pl2.victorias+(result==="j2"?1:0),
-          derrotas: pl2.derrotas+(result==="j1"?1:0),
-          empates: pl2.empates+(result==="draw"?1:0),
-          racha_victorias: racha2, meses_sin_jugar: 0
-        });
-      }
+      await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j1)}`,{
+        pts: pl1.pts+p1, jugados: pl1.jugados+1,
+        victorias: pl1.victorias+(result==="j1"?1:0),
+        derrotas: pl1.derrotas+(result==="j2"?1:0),
+        empates: pl1.empates+(result==="draw"?1:0),
+        racha_victorias: racha1, meses_sin_jugar: 0
+      });
+      await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j2)}`,{
+        pts: pl2.pts+p2, jugados: pl2.jugados+1,
+        victorias: pl2.victorias+(result==="j2"?1:0),
+        derrotas: pl2.derrotas+(result==="j1"?1:0),
+        empates: pl2.empates+(result==="draw"?1:0),
+        racha_victorias: racha2, meses_sin_jugar: 0
+      });
 
       setSaved(true); setSets("");
       setTimeout(()=>{ setSaved(false); setTab("ranking"); }, 1800);
@@ -402,7 +410,7 @@ function App() {
             "Puntos según el nivel del rival"
           ),
           React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,lineHeight:1.6,marginBottom:10}},
-            "Los puntos no son fijos. Cuanto más arriba en el ranking está tu rival, más ganas si le vences. La distancia se mide en posiciones del ranking, en tramos de 5."
+            "Los puntos no son fijos. Cuanto más arriba en el ranking está tu rival, más ganas si le vences. Si eres favorito y pierdes contra alguien muy por debajo, la penalización es mayor. La distancia se mide en posiciones del ranking, en tramos de 5."
           ),
           React.createElement("div", {style:{background:BRAND.bg,borderRadius:8,overflow:"hidden",border:`1px solid ${BRAND.border}`}},
             React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr auto auto",fontSize:11,fontWeight:600,color:BRAND.textMuted,padding:"6px 12px",borderBottom:`1px solid ${BRAND.border}`,background:"#eef1f6"}},
@@ -411,11 +419,11 @@ function App() {
               React.createElement("span", {style:{textAlign:"center",minWidth:40}}, "Perdedor")
             ),
             [
-              ["Rival está 10+ posiciones por encima", "+5", "-1"],
-              ["Rival está 5–9 posiciones por encima", "+4", "-1"],
-              ["Rival está 1–4 posiciones por encima o igual", "+3", "-1"],
-              ["Rival está 1–4 posiciones por debajo", "+2", "-2"],
-              ["Rival está 5+ posiciones por debajo", "+2", "-3"],
+              ["Ganas a alguien 10+ posiciones por encima", "+5", "-3"],
+              ["Ganas a alguien 5–9 posiciones por encima", "+4", "-2"],
+              ["Ganas a alguien similar (0–4 pos. encima)", "+3", "-1"],
+              ["Ganas a alguien 1–4 posiciones por debajo", "+2", "-1"],
+              ["Ganas a alguien 5+ posiciones por debajo", "+2", "-1"],
             ].map(([label, win, lose], i) =>
               React.createElement("div", {key:i, style:{display:"grid",gridTemplateColumns:"1fr auto auto",fontSize:12,padding:"7px 12px",borderBottom:i<4?`1px solid ${BRAND.border}`:"none",background:i%2===0?"#fff":BRAND.bg}},
                 React.createElement("span", {style:{color:BRAND.textMuted}}, label),
