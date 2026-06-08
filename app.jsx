@@ -37,15 +37,16 @@ const SP_PLAYERS = ["Sergio","Jordi"];
 
 // ── ALGORITMO ──────────────────────────────────────────────────────────────
 function calcEloPoints(rankGanador, rankPerdedor) {
-  // diff positivo = ganador estaba POR DEBAJO del perdedor (upset)
-  // diff negativo = ganador estaba POR ENCIMA del perdedor (esperado)
-  const diff = rankPerdedor - rankGanador;
+  // rank 0 = líder. Número mayor = peor posición.
+  // diff positivo = ganador está MÁS ABAJO que el perdedor = upset
+  // diff negativo = ganador está MÁS ARRIBA que el perdedor = esperado
+  const diff = rankGanador - rankPerdedor;
   let ptsWin, ptsLose;
-  if (diff >= 10)       { ptsWin = 5; ptsLose = -1; } // upset enorme: ganas a alguien 10+ pos. por encima
-  else if (diff >= 5)   { ptsWin = 4; ptsLose = -1; } // upset notable: 5-9 pos. por encima
-  else if (diff >= 0)   { ptsWin = 3; ptsLose = -1; } // rival igual o ligeramente por encima
-  else if (diff >= -4)  { ptsWin = 2; ptsLose = -2; } // ganas a alguien 1-4 pos. por debajo
-  else                  { ptsWin = 2; ptsLose = -3; } // ganas a alguien 5+ pos. por debajo
+  if (diff >= 10)      { ptsWin = 5; ptsLose = -1; } // upset enorme
+  else if (diff >= 5)  { ptsWin = 4; ptsLose = -1; } // upset notable
+  else if (diff >= 0)  { ptsWin = 3; ptsLose = -1; } // similar o ligeramente por debajo
+  else if (diff >= -4) { ptsWin = 2; ptsLose = -2; } // ganas a alguien 1-4 pos. por debajo
+  else                 { ptsWin = 2; ptsLose = -3; } // ganas a alguien 5+ pos. por debajo
   return { ptsWin, ptsLose };
 }
 
@@ -70,12 +71,15 @@ function calcPoints(j1name, j2name, result, players) {
   const pl2 = players.find(p => p.nombre === j2name);
   if (!pl1 || !pl2) return {p1:0, p2:0, b1:"", b2:""};
 
-  const r1 = players.findIndex(p => p.nombre === j1name);
+  // Posición en el ranking (0 = primero). Players ya viene ordenado desc por pts.
+  const r1 = players.findIndex(p => p.nombre === j1name); // 0 = líder
   const r2 = players.findIndex(p => p.nombre === j2name);
 
   let p1=0, p2=0, b1="", b2="";
 
   if (result === "j1") {
+    // j1 gana. ¿Cuántas posiciones está j1 por DEBAJO de j2?
+    // r1 > r2 significa j1 está más abajo en el ranking (número mayor = peor posición)
     const {ptsWin, ptsLose} = calcEloPoints(r1, r2);
     const streak = calcStreakBonus((pl1.racha_victorias || 0) + 1);
     p1 = ptsWin + streak;
@@ -84,6 +88,7 @@ function calcPoints(j1name, j2name, result, players) {
     if (streak > 0) b1 += (b1?" · ":"") + "+1 racha";
     if (ptsLose < -1) b2 = `${ptsLose} ELO`;
   } else if (result === "j2") {
+    // j2 gana. ¿Cuántas posiciones está j2 por DEBAJO de j1?
     const {ptsWin, ptsLose} = calcEloPoints(r2, r1);
     const streak = calcStreakBonus((pl2.racha_victorias || 0) + 1);
     p2 = ptsWin + streak;
@@ -92,7 +97,7 @@ function calcPoints(j1name, j2name, result, players) {
     if (streak > 0) b2 += (b2?" · ":"") + "+1 racha";
     if (ptsLose < -1) b1 = `${ptsLose} ELO`;
   } else {
-    // Empate: ranking position logic
+    // Empate: el mejor clasificado (índice menor) pierde -1, el peor gana +1
     p1 = r1 < r2 ? -1 : 1;
     p2 = r2 < r1 ? -1 : 1;
   }
