@@ -476,12 +476,14 @@ function App() {
 
         // CALENDARIO
         React.createElement("div", {style:{background:BRAND.blueLight,borderRadius:8,padding:"10px 12px",border:`1px solid ${BRAND.blueMid}`,fontSize:12,color:BRAND.blue,lineHeight:1.7}},
-          React.createElement("span", {style:{fontWeight:700}}, "📅 Calendario: "),
-          "El ranking está activo de ",
-          React.createElement("span", {style:{fontWeight:700}}, "septiembre a junio"),
-          ". Los partidos jugados en julio y agosto se registran pero ",
+          React.createElement("span", {style:{fontWeight:700}},           "📅 Calendario: "),
+          "Puedes registrar partidos ",
+          React.createElement("span", {style:{fontWeight:700}}, "desde ya"),
+          ". Los puntos y el ranking arrancan en ",
+          React.createElement("span", {style:{fontWeight:700}}, "septiembre"),
+          ". Los partidos de julio y agosto se guardan pero ",
           React.createElement("span", {style:{fontWeight:700}}, "no suman ni restan puntos"),
-          ". El contador de inactividad tampoco corre en verano."
+          " y el contador de inactividad no corre hasta septiembre."
         )
       )
     ),
