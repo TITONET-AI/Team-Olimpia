@@ -37,13 +37,15 @@ const SP_PLAYERS = ["Sergio","Jordi"];
 
 // ── ALGORITMO ──────────────────────────────────────────────────────────────
 function calcEloPoints(rankGanador, rankPerdedor) {
-  const diff = rankGanador - rankPerdedor; // positivo = rival mejor clasificado
+  // diff positivo = ganador estaba POR DEBAJO del perdedor (upset)
+  // diff negativo = ganador estaba POR ENCIMA del perdedor (esperado)
+  const diff = rankPerdedor - rankGanador;
   let ptsWin, ptsLose;
-  if (diff >= 10)      { ptsWin = 5; ptsLose = -1; }
-  else if (diff >= 5)  { ptsWin = 4; ptsLose = -1; }
-  else if (diff >= 1)  { ptsWin = 3; ptsLose = -1; }
-  else if (diff >= -4) { ptsWin = 2; ptsLose = -2; }
-  else                 { ptsWin = 2; ptsLose = -3; }
+  if (diff >= 10)       { ptsWin = 5; ptsLose = -1; } // upset enorme: ganas a alguien 10+ pos. por encima
+  else if (diff >= 5)   { ptsWin = 4; ptsLose = -1; } // upset notable: 5-9 pos. por encima
+  else if (diff >= 0)   { ptsWin = 3; ptsLose = -1; } // rival igual o ligeramente por encima
+  else if (diff >= -4)  { ptsWin = 2; ptsLose = -2; } // ganas a alguien 1-4 pos. por debajo
+  else                  { ptsWin = 2; ptsLose = -3; } // ganas a alguien 5+ pos. por debajo
   return { ptsWin, ptsLose };
 }
 
