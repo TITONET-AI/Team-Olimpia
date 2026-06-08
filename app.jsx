@@ -9,24 +9,13 @@ const HEADERS = {
   "Prefer": "return=representation"
 };
 
-// CEM Olímpia brand colors
 const BRAND = {
-  blue: "#1B75BB",
-  blueDark: "#145a92",
-  blueLight: "#e8f2fb",
-  blueMid: "#c2ddf5",
-  bg: "#f4f6f9",
-  card: "#ffffff",
-  border: "#dde3ed",
-  text: "#1a1a2e",
-  textMuted: "#6b7a99",
-  textLight: "#a0aec0",
-  green: "#1D9E75",
-  greenLight: "#e1f5ee",
-  amber: "#e8920a",
-  amberLight: "#fef3e2",
-  red: "#d63b3b",
-  redLight: "#fdeaea",
+  blue: "#1B75BB", blueDark: "#145a92", blueLight: "#e8f2fb", blueMid: "#c2ddf5",
+  bg: "#f4f6f9", card: "#ffffff", border: "#dde3ed",
+  text: "#1a1a2e", textMuted: "#6b7a99", textLight: "#a0aec0",
+  green: "#1D9E75", greenLight: "#e1f5ee",
+  amber: "#e8920a", amberLight: "#fef3e2",
+  red: "#d63b3b", redLight: "#fdeaea",
 };
 
 const ZONE_COLORS = [
@@ -45,17 +34,70 @@ const INITIAL_PLAYERS = [
   {nombre:"Sergio",pts:50},{nombre:"Jordi",pts:50}
 ];
 const SP_PLAYERS = ["Sergio","Jordi"];
-const CONFIG = { pts_victoria:3, pts_derrota:-1, pts_empate_superior:-1, pts_empate_inferior:1, bonus_upset:1 };
 
-function calcPoints(j1, j2, result, players) {
-  const r1 = players.findIndex(p => p.nombre === j1);
-  const r2 = players.findIndex(p => p.nombre === j2);
-  let p1=0, p2=0, b1="", b2="";
-  if (result==="j1") { p1=CONFIG.pts_victoria; p2=CONFIG.pts_derrota; if(r1>r2){p1+=CONFIG.bonus_upset;b1="+1 upset";} }
-  else if (result==="j2") { p2=CONFIG.pts_victoria; p1=CONFIG.pts_derrota; if(r2>r1){p2+=CONFIG.bonus_upset;b2="+1 upset";} }
-  else { p1=r1<r2?CONFIG.pts_empate_superior:CONFIG.pts_empate_inferior; p2=r2<r1?CONFIG.pts_empate_superior:CONFIG.pts_empate_inferior; }
-  return {p1,p2,b1,b2};
+// ── ALGORITMO ──────────────────────────────────────────────────────────────
+function calcEloPoints(ptsGanador, ptsPerdedor) {
+  const diff = ptsPerdedor - ptsGanador; // positivo = rival más fuerte
+  let ptsWin, ptsLose;
+  if (diff >= 26)       { ptsWin = 5; ptsLose = -1; }
+  else if (diff >= 11)  { ptsWin = 4; ptsLose = -1; }
+  else if (diff >= 0)   { ptsWin = 3; ptsLose = -1; }
+  else if (diff >= -10) { ptsWin = 2; ptsLose = -2; }
+  else                  { ptsWin = 2; ptsLose = -3; }
+  return { ptsWin, ptsLose };
 }
+
+function calcStreakBonus(victoriasSeguidas) {
+  return victoriasSeguidas >= 3 ? 1 : 0;
+}
+
+function calcInactivityPenalty(mesesSinJugar) {
+  if (mesesSinJugar >= 3) return -5;
+  if (mesesSinJugar === 2) return -3;
+  if (mesesSinJugar === 1) return -1;
+  return 0;
+}
+
+function isRankingActive(date) {
+  const m = new Date(date).getMonth() + 1; // 1-12
+  return m !== 7 && m !== 8; // julio y agosto excluidos
+}
+
+function calcPoints(j1name, j2name, result, players) {
+  const pl1 = players.find(p => p.nombre === j1name);
+  const pl2 = players.find(p => p.nombre === j2name);
+  if (!pl1 || !pl2) return {p1:0, p2:0, b1:"", b2:""};
+
+  const r1 = players.findIndex(p => p.nombre === j1name);
+  const r2 = players.findIndex(p => p.nombre === j2name);
+
+  let p1=0, p2=0, b1="", b2="";
+
+  if (result === "j1") {
+    const {ptsWin, ptsLose} = calcEloPoints(pl1.pts, pl2.pts);
+    const streak = calcStreakBonus((pl1.racha_victorias || 0) + 1);
+    p1 = ptsWin + streak;
+    p2 = ptsLose;
+    if (ptsWin > 3) b1 = `+${ptsWin} ELO`;
+    if (streak > 0) b1 += (b1?" · ":"") + "+1 racha";
+    if (ptsLose < -1) b2 = `${ptsLose} ELO`;
+  } else if (result === "j2") {
+    const {ptsWin, ptsLose} = calcEloPoints(pl2.pts, pl1.pts);
+    const streak = calcStreakBonus((pl2.racha_victorias || 0) + 1);
+    p2 = ptsWin + streak;
+    p1 = ptsLose;
+    if (ptsWin > 3) b2 = `+${ptsWin} ELO`;
+    if (streak > 0) b2 += (b2?" · ":"") + "+1 racha";
+    if (ptsLose < -1) b1 = `${ptsLose} ELO`;
+  } else {
+    // Empate: ranking position logic
+    p1 = r1 < r2 ? -1 : 1;
+    p2 = r2 < r1 ? -1 : 1;
+  }
+
+  return {p1, p2, b1, b2};
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 async function sbGet(table, params="") {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {headers:HEADERS});
@@ -132,7 +174,10 @@ function App() {
 
   async function seedPlayers() {
     try {
-      await sbPost("jugadores", INITIAL_PLAYERS.map(p=>({nombre:p.nombre,pts:p.pts,jugados:0,victorias:0,derrotas:0,empates:0})));
+      await sbPost("jugadores", INITIAL_PLAYERS.map(p=>({
+        nombre:p.nombre, pts:p.pts, jugados:0, victorias:0, derrotas:0, empates:0,
+        racha_victorias:0, meses_sin_jugar:0
+      })));
       await loadData();
     } catch(e) { setLoading(false); setError("Error en inicialitzar."); }
   }
@@ -147,11 +192,38 @@ function App() {
     setSaving(true); setError("");
     const {p1,p2} = calcPoints(j1,j2,result,sorted);
     const resultLabel = result==="j1"?j1:result==="j2"?j2:"Empate";
+    const active = isRankingActive(fecha);
+
     try {
-      await sbPost("partidos",{id:Date.now(),fecha,j1,j2,resultado:resultLabel,sets:sets||"-",pts_j1:p1,pts_j2:p2});
-      const pl1=players.find(p=>p.nombre===j1), pl2=players.find(p=>p.nombre===j2);
-      await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j1)}`,{pts:pl1.pts+p1,jugados:pl1.jugados+1,victorias:pl1.victorias+(p1>=3?1:0),derrotas:pl1.derrotas+(p1<0?1:0),empates:pl1.empates+(resultLabel==="Empate"?1:0)});
-      await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j2)}`,{pts:pl2.pts+p2,jugados:pl2.jugados+1,victorias:pl2.victorias+(p2>=3?1:0),derrotas:pl2.derrotas+(p2<0?1:0),empates:pl2.empates+(resultLabel==="Empate"?1:0)});
+      await sbPost("partidos",{
+        id:Date.now(), fecha, j1, j2, resultado:resultLabel,
+        sets:sets||"-", pts_j1:active?p1:0, pts_j2:active?p2:0
+      });
+
+      if (active) {
+        const pl1=players.find(p=>p.nombre===j1);
+        const pl2=players.find(p=>p.nombre===j2);
+
+        // Calcular nueva racha
+        const racha1 = result==="j1" ? (pl1.racha_victorias||0)+1 : (result==="draw" ? (pl1.racha_victorias||0) : 0);
+        const racha2 = result==="j2" ? (pl2.racha_victorias||0)+1 : (result==="draw" ? (pl2.racha_victorias||0) : 0);
+
+        await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j1)}`,{
+          pts: pl1.pts+p1, jugados: pl1.jugados+1,
+          victorias: pl1.victorias+(result==="j1"?1:0),
+          derrotas: pl1.derrotas+(result==="j2"?1:0),
+          empates: pl1.empates+(result==="draw"?1:0),
+          racha_victorias: racha1, meses_sin_jugar: 0
+        });
+        await sbPatch("jugadores",`nombre=eq.${encodeURIComponent(j2)}`,{
+          pts: pl2.pts+p2, jugados: pl2.jugados+1,
+          victorias: pl2.victorias+(result==="j2"?1:0),
+          derrotas: pl2.derrotas+(result==="j1"?1:0),
+          empates: pl2.empates+(result==="draw"?1:0),
+          racha_victorias: racha2, meses_sin_jugar: 0
+        });
+      }
+
       setSaved(true); setSets("");
       setTimeout(()=>{ setSaved(false); setTab("ranking"); }, 1800);
       await loadData();
@@ -161,8 +233,8 @@ function App() {
 
   const tabStyle = (id) => ({
     padding:"11px 18px", fontSize:14, cursor:"pointer", fontWeight:500, background:"none", border:"none",
-    color: tab===id ? BRAND.blue : BRAND.textMuted,
-    borderBottom: tab===id ? `2px solid ${BRAND.blue}` : "2px solid transparent",
+    color: tab===id?"#fff":"rgba(255,255,255,0.6)",
+    borderBottom: tab===id?"2px solid #fff":"2px solid transparent",
     marginBottom:-1
   });
 
@@ -177,16 +249,17 @@ function App() {
     return {
       flex:1, padding:"11px 6px", textAlign:"center", fontSize:13, cursor:"pointer",
       borderRadius:8, fontWeight:active?600:400,
-      background:active?c.bg:"#fff",
-      color:active?c.col:BRAND.textMuted,
+      background:active?c.bg:"#fff", color:active?c.col:BRAND.textMuted,
       border:`1px solid ${active?c.border:BRAND.border}`,
       transition:"all 0.15s", userSelect:"none"
     };
   };
 
+  const activeMonth = isRankingActive(fecha);
+
   return React.createElement("div", null,
 
-    // HEADER
+    // HEADER AZUL
     React.createElement("div", {style:{background:BRAND.blue,margin:"-1.5rem -1rem 1.5rem",padding:"1.25rem 1.25rem 0"}},
       React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.25rem"}},
         React.createElement("div", {style:{display:"flex",alignItems:"center",gap:12}},
@@ -201,12 +274,12 @@ function App() {
           style:{fontSize:12,padding:"6px 12px",cursor:"pointer",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff"}
         }, "↻ Actualizar")
       ),
-
-      // TABS en el header
       React.createElement("div", {style:{display:"flex"}},
-        React.createElement("button", {onClick:()=>setTab("ranking"),style:{...tabStyle("ranking"),color:tab==="ranking"?"#fff":"rgba(255,255,255,0.6)",borderBottom:tab==="ranking"?"2px solid #fff":"2px solid transparent"}}, "Ranking"),
-        React.createElement("button", {onClick:()=>setTab("partido"),style:{...tabStyle("partido"),color:tab==="partido"?"#fff":"rgba(255,255,255,0.6)",borderBottom:tab==="partido"?"2px solid #fff":"2px solid transparent"}}, "Registrar partido"),
-        React.createElement("button", {onClick:()=>setTab("historial"),style:{...tabStyle("historial"),color:tab==="historial"?"#fff":"rgba(255,255,255,0.6)",borderBottom:tab==="historial"?"2px solid #fff":"2px solid transparent"}}, "Historial")
+        ["ranking","partido","historial"].map(id =>
+          React.createElement("button", {key:id, onClick:()=>setTab(id), style:tabStyle(id)},
+            id==="ranking"?"Ranking":id==="partido"?"Registrar partido":"Historial"
+          )
+        )
       )
     ),
 
@@ -214,7 +287,7 @@ function App() {
       style:{background:BRAND.redLight,color:BRAND.red,borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem",border:`1px solid ${BRAND.red}33`}
     }, "⚠️ "+error),
 
-    // RANKING
+    // ── RANKING ──
     tab==="ranking" && React.createElement("div", null,
       loading && React.createElement("div", {style:{color:BRAND.textMuted,fontSize:14,padding:"2rem 0",textAlign:"center"}}, "⏳ Carregant classificació..."),
       !loading && sorted.map((p,i) => {
@@ -222,12 +295,18 @@ function App() {
         const col = ZONE_COLORS[Math.min(i,ZONE_COLORS.length-1)];
         const pct = Math.round((p.pts/maxPts)*100);
         const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
+        const streak = p.racha_victorias || 0;
         return React.createElement(Card, {key:p.nombre, style:{marginBottom:8,padding:"12px 16px"}},
           React.createElement("div", {style:{display:"flex",alignItems:"center",gap:12}},
             React.createElement("span", {style:{fontSize:i<3?18:14,color:BRAND.textLight,width:26,textAlign:"right",flexShrink:0,fontWeight:500}}, isSP?"—":medal||i+1),
             React.createElement(Avatar, {name:p.nombre,size:34,color:col}),
             React.createElement("div", {style:{flex:1}},
-              React.createElement("div", {style:{fontSize:15,fontWeight:600,color:BRAND.text,marginBottom:4}}, p.nombre),
+              React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8,marginBottom:4}},
+                React.createElement("span", {style:{fontSize:15,fontWeight:600,color:BRAND.text}}, p.nombre),
+                streak>=3 && React.createElement("span", {
+                  style:{fontSize:10,fontWeight:700,background:BRAND.amberLight,color:BRAND.amber,padding:"2px 6px",borderRadius:4}
+                }, `🔥 ${streak} seguits`)
+              ),
               React.createElement("div", {style:{height:4,background:"#eef1f6",borderRadius:2,overflow:"hidden"}},
                 React.createElement("div", {style:{height:"100%",borderRadius:2,background:col,width:`${pct}%`,transition:"width 0.5s ease"}})
               )
@@ -248,8 +327,13 @@ function App() {
       )
     ),
 
-    // REGISTRAR PARTIDO
+    // ── REGISTRAR PARTIDO ──
     tab==="partido" && React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:12}},
+
+      !activeMonth && React.createElement("div", {
+        style:{background:BRAND.amberLight,color:BRAND.amber,borderRadius:8,padding:"10px 14px",fontSize:13,border:`1px solid ${BRAND.amber}44`}
+      }, "⚠️ Juliol i agost no compten pel ranking. El partit es registrarà però no sumaran punts."),
+
       React.createElement(Card, null,
         React.createElement(SectionLabel, {text:"Jugadors"}),
         React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:12,alignItems:"end"}},
@@ -273,11 +357,13 @@ function App() {
           React.createElement("div", {onClick:()=>setResult("j2"),style:rBtnStyle("j2")}, j2+" guanya")
         ),
         React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
-          [{name:j1,pts:prev1,bonus:b1},{name:j2,pts:prev2,bonus:b2}].map(pl =>
+          [{name:j1,pts:activeMonth?prev1:0,bonus:activeMonth?b1:""},{name:j2,pts:activeMonth?prev2:0,bonus:activeMonth?b2:""}].map(pl =>
             React.createElement("div", {key:pl.name,style:{background:BRAND.bg,borderRadius:8,padding:"12px",textAlign:"center",border:`1px solid ${BRAND.border}`}},
               React.createElement("div", {style:{fontSize:11,color:BRAND.textMuted,marginBottom:6,fontWeight:500}}, pl.name),
-              React.createElement("div", {style:{fontSize:24,fontWeight:700,color:pl.pts>0?BRAND.green:pl.pts<0?BRAND.red:BRAND.textMuted}}, (pl.pts>0?"+":"")+pl.pts),
-              pl.bonus&&React.createElement("div", {style:{fontSize:11,color:BRAND.green,marginTop:3}}, pl.bonus)
+              React.createElement("div", {style:{fontSize:24,fontWeight:700,color:pl.pts>0?BRAND.green:pl.pts<0?BRAND.red:BRAND.textMuted}},
+                activeMonth ? (pl.pts>0?"+":"")+pl.pts : "—"
+              ),
+              pl.bonus && React.createElement("div", {style:{fontSize:11,color:BRAND.blue,marginTop:3}}, pl.bonus)
             )
           )
         )
@@ -300,10 +386,34 @@ function App() {
       React.createElement("button", {
         onClick:saveMatch, disabled:saving||j1===j2,
         style:{width:"100%",padding:"14px",fontSize:15,fontWeight:600,cursor:saving?"wait":"pointer",background:saved?BRAND.green:BRAND.blue,border:"none",borderRadius:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.2s",opacity:j1===j2?0.5:1}
-      }, saving?"Guardant...":saved?"✓ Partit guardat":"Desar partit")
+      }, saving?"Guardant...":saved?"✓ Partit guardat":"Desar partit"),
+
+      React.createElement(Card, {style:{padding:"12px 16px"}},
+        React.createElement(SectionLabel, {text:"Sistema de punts ELO"}),
+        React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,display:"grid",gridTemplateColumns:"1fr auto auto",gap:"4px 16px",alignItems:"center"}},
+          React.createElement("span", null, "Guanyes a rival +26 pts per sobre"),
+          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+5"),
+          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
+          React.createElement("span", null, "Guanyes a rival +11–25 pts per sobre"),
+          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+4"),
+          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
+          React.createElement("span", null, "Guanyes a rival similar (0–10 pts)"),
+          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+3"),
+          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
+          React.createElement("span", null, "Guanyes a rival 1–10 pts per sota"),
+          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+2"),
+          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-2"),
+          React.createElement("span", null, "Guanyes a rival 11+ pts per sota"),
+          React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+2"),
+          React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-3"),
+          React.createElement("span", {style:{gridColumn:"1/-1",borderTop:`1px solid ${BRAND.border}`,paddingTop:8,marginTop:4,color:BRAND.textMuted}},
+            "🔥 Racha: +1 extra des de la 3a victòria consecutiva · Juliol–Agost no compten"
+          )
+        )
+      )
     ),
 
-    // HISTORIAL
+    // ── HISTORIAL ──
     tab==="historial" && React.createElement("div", null,
       loading && React.createElement("div", {style:{color:BRAND.textMuted,fontSize:14,padding:"2rem 0",textAlign:"center"}}, "⏳ Carregant..."),
       !loading && matches.length===0 && React.createElement("div", {style:{textAlign:"center",padding:"3rem 0",color:BRAND.textMuted}},
@@ -312,9 +422,10 @@ function App() {
       ),
       matches.map((m,i) => {
         const win=m.resultado===m.j1, draw=m.resultado==="Empate";
-        const badgeBg=draw?BRAND.amberLight:win?BRAND.greenLight:BRAND.redLight;
-        const badgeCol=draw?BRAND.amber:win?BRAND.green:BRAND.red;
-        const label=draw?"Empat":`${m.resultado} guanya`;
+        const inactive = m.pts_j1===0 && m.pts_j2===0;
+        const badgeBg=inactive?"#f0f2f5":draw?BRAND.amberLight:win?BRAND.greenLight:BRAND.redLight;
+        const badgeCol=inactive?BRAND.textMuted:draw?BRAND.amber:win?BRAND.green:BRAND.red;
+        const label=inactive?"Sense punts":draw?"Empat":`${m.resultado} guanya`;
         return React.createElement(Card, {key:i,style:{marginBottom:8,padding:"12px 16px"}},
           React.createElement("div", {style:{display:"flex",alignItems:"center",gap:10}},
             React.createElement("span", {style:{fontSize:11,padding:"3px 10px",borderRadius:6,fontWeight:600,background:badgeBg,color:badgeCol,whiteSpace:"nowrap",flexShrink:0}}, label),
@@ -325,7 +436,7 @@ function App() {
               m.sets&&m.sets!=="-"&&React.createElement("span", {style:{color:BRAND.textMuted,fontSize:12}}, " · "+m.sets)
             ),
             React.createElement("span", {style:{color:BRAND.textLight,fontSize:12,whiteSpace:"nowrap",flexShrink:0}}, m.fecha),
-            React.createElement("div", {style:{display:"flex",gap:4,flexShrink:0}},
+            !inactive && React.createElement("div", {style:{display:"flex",gap:4,flexShrink:0}},
               React.createElement(PtsBadge, {val:Number(m.pts_j1)}),
               React.createElement(PtsBadge, {val:Number(m.pts_j2)})
             )
