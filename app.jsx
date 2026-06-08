@@ -330,9 +330,6 @@ function App() {
     // ── REGISTRAR PARTIDO ──
     tab==="partido" && React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:12}},
 
-      !activeMonth && React.createElement("div", {
-        style:{background:BRAND.amberLight,color:BRAND.amber,borderRadius:8,padding:"10px 14px",fontSize:13,border:`1px solid ${BRAND.amber}44`}
-      }, "⚠️ Julio y agosto no cuentan para el ranking. El partido se registrará pero no sumará puntos."),
 
       React.createElement(Card, null,
         React.createElement(SectionLabel, {text:"Jugadores"}),
@@ -477,13 +474,13 @@ function App() {
         // CALENDARIO
         React.createElement("div", {style:{background:BRAND.blueLight,borderRadius:8,padding:"10px 12px",border:`1px solid ${BRAND.blueMid}`,fontSize:12,color:BRAND.blue,lineHeight:1.7}},
           React.createElement("span", {style:{fontWeight:700}},           "📅 Calendario: "),
-          "Puedes registrar partidos ",
-          React.createElement("span", {style:{fontWeight:700}}, "desde ya"),
-          ". Los puntos y el ranking arrancan en ",
+          "Puedes registrar partidos desde ya. Los puntos y el ranking ",
+          React.createElement("span", {style:{fontWeight:700}}, "ya se actualizan"),
+          ". La actividad de julio y agosto ",
+          React.createElement("span", {style:{fontWeight:700}}, "no se tendrá en cuenta"),
+          " para el índice de inactividad, que empezará a partir de ",
           React.createElement("span", {style:{fontWeight:700}}, "septiembre"),
-          ". Los partidos de julio y agosto se guardan pero ",
-          React.createElement("span", {style:{fontWeight:700}}, "no suman ni restan puntos"),
-          " y el contador de inactividad no corre hasta septiembre."
+          "."
         )
       )
     ),
