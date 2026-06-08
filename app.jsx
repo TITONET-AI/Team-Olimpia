@@ -168,7 +168,7 @@ function App() {
       if (Array.isArray(pls) && pls.length===0) { await seedPlayers(); return; }
       if (Array.isArray(pls) && pls.length>0) setPlayers(pls);
       if (Array.isArray(mts)) setMatches(mts);
-    } catch(e) { setError("No s'ha pogut connectar. Comprova la connexió."); }
+    } catch(e) { setError("No se pudo conectar. Comprueba la conexión."); }
     setLoading(false);
   }
 
@@ -179,7 +179,7 @@ function App() {
         racha_victorias:0, meses_sin_jugar:0
       })));
       await loadData();
-    } catch(e) { setLoading(false); setError("Error en inicialitzar."); }
+    } catch(e) { setLoading(false); setError("Error al inicializar."); }
   }
 
   const sorted = [...players].sort((a,b)=>b.pts-a.pts);
@@ -289,7 +289,7 @@ function App() {
 
     // ── RANKING ──
     tab==="ranking" && React.createElement("div", null,
-      loading && React.createElement("div", {style:{color:BRAND.textMuted,fontSize:14,padding:"2rem 0",textAlign:"center"}}, "⏳ Carregant classificació..."),
+      loading && React.createElement("div", {style:{color:BRAND.textMuted,fontSize:14,padding:"2rem 0",textAlign:"center"}}, "⏳ Cargando clasificación..."),
       !loading && sorted.map((p,i) => {
         const isSP = SP_PLAYERS.includes(p.nombre) && p.jugados===0;
         const col = ZONE_COLORS[Math.min(i,ZONE_COLORS.length-1)];
@@ -332,10 +332,10 @@ function App() {
 
       !activeMonth && React.createElement("div", {
         style:{background:BRAND.amberLight,color:BRAND.amber,borderRadius:8,padding:"10px 14px",fontSize:13,border:`1px solid ${BRAND.amber}44`}
-      }, "⚠️ Juliol i agost no compten pel ranking. El partit es registrarà però no sumaran punts."),
+      }, "⚠️ Julio y agosto no cuentan para el ranking. El partido se registrará pero no sumará puntos."),
 
       React.createElement(Card, null,
-        React.createElement(SectionLabel, {text:"Jugadors"}),
+        React.createElement(SectionLabel, {text:"Jugadores"}),
         React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:12,alignItems:"end"}},
           React.createElement("div", null,
             React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,marginBottom:5}}, "Jugador 1"),
@@ -350,11 +350,11 @@ function App() {
       ),
 
       React.createElement(Card, null,
-        React.createElement(SectionLabel, {text:"Resultat"}),
+        React.createElement(SectionLabel, {text:"Resultado"}),
         React.createElement("div", {style:{display:"flex",gap:8,marginBottom:14}},
-          React.createElement("div", {onClick:()=>setResult("j1"),style:rBtnStyle("j1")}, j1+" guanya"),
-          React.createElement("div", {onClick:()=>setResult("draw"),style:rBtnStyle("draw")}, "Empat"),
-          React.createElement("div", {onClick:()=>setResult("j2"),style:rBtnStyle("j2")}, j2+" guanya")
+          React.createElement("div", {onClick:()=>setResult("j1"),style:rBtnStyle("j1")}, j1+" gana"),
+          React.createElement("div", {onClick:()=>setResult("draw"),style:rBtnStyle("draw")}, "Empate"),
+          React.createElement("div", {onClick:()=>setResult("j2"),style:rBtnStyle("j2")}, j2+" gana")
         ),
         React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
           [{name:j1,pts:activeMonth?prev1:0,bonus:activeMonth?b1:""},{name:j2,pts:activeMonth?prev2:0,bonus:activeMonth?b2:""}].map(pl =>
@@ -386,28 +386,28 @@ function App() {
       React.createElement("button", {
         onClick:saveMatch, disabled:saving||j1===j2,
         style:{width:"100%",padding:"14px",fontSize:15,fontWeight:600,cursor:saving?"wait":"pointer",background:saved?BRAND.green:BRAND.blue,border:"none",borderRadius:12,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.2s",opacity:j1===j2?0.5:1}
-      }, saving?"Guardant...":saved?"✓ Partit guardat":"Desar partit"),
+      }, saving?"Guardando...":saved?"✓ Partido guardado":"Guardar partido"),
 
       React.createElement(Card, {style:{padding:"12px 16px"}},
-        React.createElement(SectionLabel, {text:"Sistema de punts ELO"}),
+        React.createElement(SectionLabel, {text:"Sistema de puntos ELO"}),
         React.createElement("div", {style:{fontSize:12,color:BRAND.textMuted,display:"grid",gridTemplateColumns:"1fr auto auto",gap:"4px 16px",alignItems:"center"}},
-          React.createElement("span", null, "Guanyes a rival +26 pts per sobre"),
+          React.createElement("span", null, "Ganas a rival +26 pts por encima"),
           React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+5"),
           React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
-          React.createElement("span", null, "Guanyes a rival +11–25 pts per sobre"),
+          React.createElement("span", null, "Ganas a rival +11–25 pts por encima"),
           React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+4"),
           React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
-          React.createElement("span", null, "Guanyes a rival similar (0–10 pts)"),
+          React.createElement("span", null, "Ganas a rival similar (0–10 pts)"),
           React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+3"),
           React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-1"),
-          React.createElement("span", null, "Guanyes a rival 1–10 pts per sota"),
+          React.createElement("span", null, "Ganas a rival 1–10 pts por debajo"),
           React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+2"),
           React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-2"),
-          React.createElement("span", null, "Guanyes a rival 11+ pts per sota"),
+          React.createElement("span", null, "Ganas a rival 11+ pts por debajo"),
           React.createElement("span", {style:{color:BRAND.green,fontWeight:600}}, "+2"),
           React.createElement("span", {style:{color:BRAND.red,fontWeight:600}}, "-3"),
           React.createElement("span", {style:{gridColumn:"1/-1",borderTop:`1px solid ${BRAND.border}`,paddingTop:8,marginTop:4,color:BRAND.textMuted}},
-            "🔥 Racha: +1 extra des de la 3a victòria consecutiva · Juliol–Agost no compten"
+            "🔥 Racha: +1 extra desde la 3ª victoria consecutiva · Julio–Agosto no cuentan"
           )
         )
       )
@@ -415,17 +415,17 @@ function App() {
 
     // ── HISTORIAL ──
     tab==="historial" && React.createElement("div", null,
-      loading && React.createElement("div", {style:{color:BRAND.textMuted,fontSize:14,padding:"2rem 0",textAlign:"center"}}, "⏳ Carregant..."),
+      loading && React.createElement("div", {style:{color:BRAND.textMuted,fontSize:14,padding:"2rem 0",textAlign:"center"}}, "⏳ Cargando..."),
       !loading && matches.length===0 && React.createElement("div", {style:{textAlign:"center",padding:"3rem 0",color:BRAND.textMuted}},
         React.createElement("div", {style:{fontSize:42,marginBottom:12}}, "🎾"),
-        React.createElement("div", {style:{fontSize:15,fontWeight:500}}, "Encara no hi ha partits registrats")
+        React.createElement("div", {style:{fontSize:15,fontWeight:500}}, "Aún no hay partidos registrados")
       ),
       matches.map((m,i) => {
         const win=m.resultado===m.j1, draw=m.resultado==="Empate";
         const inactive = m.pts_j1===0 && m.pts_j2===0;
         const badgeBg=inactive?"#f0f2f5":draw?BRAND.amberLight:win?BRAND.greenLight:BRAND.redLight;
         const badgeCol=inactive?BRAND.textMuted:draw?BRAND.amber:win?BRAND.green:BRAND.red;
-        const label=inactive?"Sense punts":draw?"Empat":`${m.resultado} guanya`;
+        const label=inactive?"Sin puntos":draw?"Empate":`${m.resultado} gana`;
         return React.createElement(Card, {key:i,style:{marginBottom:8,padding:"12px 16px"}},
           React.createElement("div", {style:{display:"flex",alignItems:"center",gap:10}},
             React.createElement("span", {style:{fontSize:11,padding:"3px 10px",borderRadius:6,fontWeight:600,background:badgeBg,color:badgeCol,whiteSpace:"nowrap",flexShrink:0}}, label),
